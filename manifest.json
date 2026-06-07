@@ -26,9 +26,11 @@
   "settings_tabs": [],
   "hooks": [],
   "routes": [
-    {"path": "/",            "title": "Blog"},
-    {"path": "/compose",     "title": "New article"},
-    {"path": "/compose/:id", "title": "Edit article"}
+    {"path": "/",                "title": "Blog"},
+    {"path": "/article/:slug",   "title": "Article"},
+    {"path": "/category/:slug",  "title": "Category"},
+    {"path": "/compose",         "title": "New article"},
+    {"path": "/compose/:id",     "title": "Edit article"}
   ],
   "admin_panel": {
     "label": "Blog",
@@ -39,8 +41,34 @@
     "icon": "fa-newspaper",
     "path": "/"
   },
-  "right_widgets": [],
-  "digest_sections": [],
+  "right_widgets": [
+    {
+      "id": "blog-feed-highlight",
+      "label": "From the blog",
+      "priority": 30,
+      "scope": {"corePages": ["feed"]}
+    },
+    {
+      "id": "blog-recent",
+      "label": "Recent articles",
+      "priority": 10,
+      "scope": "extension"
+    },
+    {
+      "id": "blog-categories",
+      "label": "Categories",
+      "priority": 20,
+      "scope": "extension"
+    }
+  ],
+  "digest_sections": [
+    {
+      "key": "recent_articles",
+      "label": "Latest from the blog",
+      "icon": "fa-newspaper",
+      "enabled_by_default": true
+    }
+  ],
   "permissions": [
     {
       "key": "can_view_blog",

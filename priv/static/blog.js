@@ -959,26 +959,418 @@
     );
   }
 
-  // ── Blog index — stub for Stage 2, full implementation in Stage 3 ──────────
+  // ── Shared rendering helpers ───────────────────────────────────────────────
 
-  function BlogIndex({ currentUser, navigate }) {
+  var { Av, Md } = window.NexusComponents;
+
+  function fmtArticleDate(iso) {
+    if (!iso) return "";
+    var d = new Date(iso);
+    return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+  }
+
+  // Full-bleed card with hero image background, gradient overlay, text on top.
+  // Used for the featured hero and the 2-column grid cards.
+  function ArticleCard({ article, featured, onClick }) {
     var R = window.React.createElement;
+    var hasHero = !!article.hero_image_url;
+    var bg = hasHero
+      ? "none"
+      : "linear-gradient(135deg, #0d1a2e 0%, #1a1226 50%, #0d1420 100%)";
+
+    var height = featured ? 260 : 220;
+
     return R("div", {
-      style: { padding: "24px 0", maxWidth: 860, margin: "0 auto" }
+      onClick: onClick,
+      style: {
+        position: "relative", height: height,
+        borderRadius: 14, overflow: "hidden",
+        background: bg, cursor: "pointer",
+        marginBottom: featured ? 14 : 0
+      }
     },
-      R("h1", {
+      hasHero && R("img", {
+        src: article.hero_image_url,
+        style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" },
+        alt: article.title
+      }),
+      R("div", {
         style: {
-          fontSize: "var(--fs-title)", fontWeight: 600,
-          color: "var(--t1)", letterSpacing: "-0.3px", marginBottom: 8
+          position: "absolute", inset: 0,
+          background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.08) 100%)"
         }
-      }, "Blog"),
-      R("p", { style: { fontSize: 13, color: "var(--t4)", marginBottom: 32 } },
-        "Articles coming soon."
+      }),
+      R("div", { style: { position: "relative", zIndex: 2, padding: featured ? "22px" : "16px 18px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" } },
+        article.category_name && R(CategoryBadge, { name: article.category_name, color: article.category_color, icon: article.category_icon }),
+        R("div", {
+          style: {
+            fontSize: featured ? 19 : 13, fontWeight: 500,
+            color: "#fff", lineHeight: 1.35,
+            marginTop: 8, marginBottom: featured ? 12 : 8,
+            letterSpacing: featured ? "-0.2px" : "-0.1px"
+          }
+        }, article.title),
+        R("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+          article.author_username && R(Av, {
+            user: { username: article.author_username, avatar_url: article.author_avatar_url, avatar_color: article.author_avatar_color },
+            size: 16
+          }),
+          article.author_username && R("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.6)" } }, article.author_username),
+          article.author_username && R("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.25)" } }, "\u00b7"),
+          R("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.6)" } }, article.reading_time_minutes + " min read"),
+          R("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.25)" } }, "\u00b7"),
+          R("span", { style: { fontSize: 12, color: "rgba(255,255,255,0.5)" } }, fmtArticleDate(article.published_at))
+        )
+      )
+    );
+  }
+
+  // ── Blog index ─────────────────────────────────────────────────────────────
+
+  function BlogIndex({ currentUser }) {
+    var [articles,   setArticles]   = useState(null);
+    var [categories, setCategories] = useState([]);
+    var [activeCat,  setActiveCat]  = useState("");
+    var R = window.React.createElement;
+
+    useEffect(function () {
+      apiGet("/categories").then(function (d) { setCategories(d.categories || []); });
+    }, []);
+
+    useEffect(function () {
+      setArticles(null);
+      var path = "/articles" + (activeCat ? "?category=" + activeCat : "");
+      apiGet(path).then(function (d) { setArticles(d.articles || []); })
+        .catch(function () { setArticles([]); });
+    }, [activeCat]);
+
+    var featured = articles && articles[0];
+    var rest     = articles ? articles.slice(1) : [];
+
+    return R("div", { style: { padding: "24px 0", maxWidth: 860, margin: "0 auto" } },
+      R("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 } },
+        R("h1", { style: { fontSize: "var(--fs-title)", fontWeight: 600, color: "var(--t1)", letterSpacing: "-0.3px" } }, "Blog"),
+        currentUser && (currentUser.role === "admin" || currentUser.role === "moderator") &&
+          R("button", {
+            className: "btn-primary",
+            style: { fontSize: 13, padding: "7px 18px" },
+            onClick: function () { NE.navigate("/ext/" + SLUG + "/compose"); }
+          }, "+ Write article")
       ),
-      currentUser && currentUser.role === "admin" && R("button", {
-        className: "btn-primary",
-        onClick: function () { NE.navigate("/ext/" + SLUG + "/compose"); }
-      }, "+ New article")
+      R("p", { style: { fontSize: 13, color: "var(--t4)", marginBottom: 20 } }, "Articles and updates from the community."),
+
+      // Category filter pills
+      categories.length > 0 && R("div", { className: "sort-pills", style: { marginBottom: 20, flexWrap: "wrap" } },
+        R("div", {
+          className: "sort-pill" + (activeCat === "" ? " active" : ""),
+          onClick: function () { setActiveCat(""); }
+        }, "All"),
+        categories.map(function (c) {
+          return R("div", {
+            key: c.id,
+            className: "sort-pill" + (activeCat === c.slug ? " active" : ""),
+            onClick: function () { setActiveCat(c.slug); }
+          },
+            R("i", { className: "fa-solid " + c.icon, style: { fontSize: 11, marginRight: 5 } }),
+            c.name
+          );
+        })
+      ),
+
+      // Loading
+      articles === null && R("div", { style: { color: "var(--t4)", fontSize: 13, padding: "32px 0" } }, "Loading\u2026"),
+
+      // Empty
+      articles && articles.length === 0 && R("div", { style: { color: "var(--t4)", fontSize: 13, padding: "32px 0" } }, "No articles yet."),
+
+      // Featured hero card
+      featured && R(ArticleCard, {
+        article: featured,
+        featured: true,
+        onClick: function () { NE.navigate("/ext/" + SLUG + "/article/" + featured.slug); }
+      }),
+
+      // 2-column grid
+      rest.length > 0 && R("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        rest.map(function (a) {
+          return R(ArticleCard, {
+            key: a.id,
+            article: a,
+            featured: false,
+            onClick: function () { NE.navigate("/ext/" + SLUG + "/article/" + a.slug); }
+          });
+        })
+      )
+    );
+  }
+
+  // ── Category index ─────────────────────────────────────────────────────────
+
+  function BlogCategoryIndex({ slug: catSlug, currentUser }) {
+    var [articles,   setArticles]   = useState(null);
+    var [category,   setCategory]   = useState(null);
+    var R = window.React.createElement;
+
+    useEffect(function () {
+      setArticles(null);
+      apiGet("/categories").then(function (d) {
+        var cat = (d.categories || []).find(function (c) { return c.slug === catSlug; });
+        setCategory(cat || null);
+      });
+      apiGet("/articles?category=" + catSlug).then(function (d) {
+        setArticles(d.articles || []);
+      }).catch(function () { setArticles([]); });
+    }, [catSlug]);
+
+    return R("div", { style: { padding: "24px 0", maxWidth: 860, margin: "0 auto" } },
+      R("div", { style: { display: "flex", alignItems: "center", gap: 10, marginBottom: 4 } },
+        R("span", {
+          style: { fontSize: 13, color: "var(--ac-text)", cursor: "pointer" },
+          onClick: function () { NE.navigate("/ext/" + SLUG); }
+        }, "\u2190 Blog"),
+        R("span", { style: { fontSize: 13, color: "var(--t5)" } }, "/"),
+        category && R("span", { style: { fontSize: 13, color: "var(--t3)" } }, category.name)
+      ),
+      category
+        ? R("h1", { style: { fontSize: "var(--fs-title)", fontWeight: 600, color: "var(--t1)", letterSpacing: "-0.3px", marginBottom: 20 } },
+            R("i", { className: "fa-solid " + category.icon, style: { fontSize: 18, color: category.color, marginRight: 10 } }),
+            category.name
+          )
+        : R("div", { style: { height: 28, marginBottom: 20 } }),
+
+      articles === null && R("div", { style: { color: "var(--t4)", fontSize: 13, padding: "20px 0" } }, "Loading\u2026"),
+      articles && articles.length === 0 && R("div", { style: { color: "var(--t4)", fontSize: 13, padding: "20px 0" } }, "No articles in this category yet."),
+
+      articles && articles.length > 0 && R("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+        articles.map(function (a) {
+          return R(ArticleCard, {
+            key: a.id,
+            article: a,
+            featured: false,
+            onClick: function () { NE.navigate("/ext/" + SLUG + "/article/" + a.slug); }
+          });
+        })
+      )
+    );
+  }
+
+  // ── Article reading view ───────────────────────────────────────────────────
+
+  function BlogArticle({ slug: articleSlug, currentUser }) {
+    var [article, setArticle] = useState(null);
+    var [notFound, setNotFound] = useState(false);
+    var R = window.React.createElement;
+
+    useEffect(function () {
+      setArticle(null);
+      setNotFound(false);
+      apiGet("/articles/" + articleSlug).then(function (d) {
+        if (d.error) { setNotFound(true); return; }
+        setArticle(d.article);
+      }).catch(function () { setNotFound(true); });
+    }, [articleSlug]);
+
+    if (notFound) {
+      return R("div", { style: { padding: "48px 0", textAlign: "center", color: "var(--t4)", fontSize: 14 } },
+        R("i", { className: "fa-solid fa-circle-exclamation", style: { marginRight: 8, color: "var(--red)" } }),
+        "Article not found."
+      );
+    }
+
+    if (!article) {
+      return R("div", { style: { padding: "40px 0", color: "var(--t4)", fontSize: 13 } }, "Loading\u2026");
+    }
+
+    var canEdit = currentUser && (currentUser.role === "admin" || (article.author_id && currentUser.id === article.author_id));
+
+    return R("div", { style: { maxWidth: 720, margin: "0 auto", padding: "24px 0 48px" } },
+      // Back link
+      R("div", {
+        style: { fontSize: 12, color: "var(--t4)", cursor: "pointer", display: "flex", alignItems: "center", gap: 6, marginBottom: 20 },
+        onClick: function () { NE.navigate("/ext/" + SLUG); }
+      },
+        R("i", { className: "fa-solid fa-arrow-left" }),
+        " Back to blog"
+      ),
+
+      // Hero image
+      article.hero_image_url && R("div", {
+        style: { borderRadius: 14, overflow: "hidden", height: 360, marginBottom: 28, position: "relative" }
+      },
+        R("img", {
+          src: article.hero_image_url,
+          style: { width: "100%", height: "100%", objectFit: "cover" },
+          alt: article.title
+        })
+      ),
+
+      // Category badge
+      article.category_name && R("div", { style: { marginBottom: 12 } },
+        R(CategoryBadge, { name: article.category_name, color: article.category_color, icon: article.category_icon })
+      ),
+
+      // Title
+      R("h1", { className: "post-title" }, article.title),
+
+      // Meta row
+      R("div", { className: "post-meta" },
+        article.author_username && R(Av, {
+          user: { username: article.author_username, avatar_url: article.author_avatar_url, avatar_color: article.author_avatar_color },
+          size: 22
+        }),
+        article.author_username && R("span", { style: { fontSize: 13, color: "var(--t3)" } }, article.author_username),
+        R("span", { style: { color: "var(--t5)" } }, "\u00b7"),
+        R("span", { style: { fontSize: 13, color: "var(--t4)" } }, fmtArticleDate(article.published_at)),
+        R("span", { style: { color: "var(--t5)" } }, "\u00b7"),
+        R("span", { style: { fontSize: 13, color: "var(--t4)" } }, article.reading_time_minutes + " min read"),
+        canEdit && R("button", {
+          className: "btn-ghost",
+          style: { fontSize: 12, padding: "4px 12px", marginLeft: "auto" },
+          onClick: function () { NE.navigate("/ext/" + SLUG + "/compose/" + article.id); }
+        }, "Edit")
+      ),
+
+      // Body — rendered via NexusComponents.Md
+      R("div", { className: "post-body", style: { paddingBottom: 0, borderBottom: "none" } },
+        R(Md, { text: article.body || "" })
+      )
+    );
+  }
+
+  // ── Right widgets ──────────────────────────────────────────────────────────
+
+  // blog-recent — shown on blog extension pages
+  function BlogRecentWidget({ currentUser }) {
+    var [articles, setArticles] = useState(null);
+    var R = window.React.createElement;
+
+    useEffect(function () {
+      apiGet("/articles?per_page=5").then(function (d) {
+        setArticles((d.articles || []).slice(0, 5));
+      }).catch(function () { setArticles([]); });
+    }, []);
+
+    if (!articles || articles.length === 0) return null;
+
+    return R("div", { className: "rw" },
+      R("div", { className: "rw-label" }, "Recent articles"),
+      articles.map(function (a) {
+        return R("div", {
+          key: a.id,
+          style: { padding: "9px 0", borderBottom: "0.5px solid rgba(255,255,255,0.04)", cursor: "pointer" },
+          onClick: function () { NE.navigate("/ext/" + SLUG + "/article/" + a.slug); }
+        },
+          a.category_name && R(CategoryBadge, { name: a.category_name, color: a.category_color, icon: a.category_icon }),
+          R("div", { style: { fontSize: 13, fontWeight: 500, color: "rgba(255,255,255,0.75)", lineHeight: 1.35, marginTop: a.category_name ? 5 : 0, marginBottom: 3 } }, a.title),
+          R("div", { style: { fontSize: 11, color: "rgba(255,255,255,0.28)", display: "flex", gap: 5, alignItems: "center" } },
+            R("span", null, a.reading_time_minutes + " min"),
+            R("span", { style: { color: "rgba(255,255,255,0.15)" } }, "\u00b7"),
+            R("span", null, fmtArticleDate(a.published_at))
+          )
+        );
+      }),
+      // Write article button — visible to users who can write
+      currentUser && (currentUser.role === "admin" || currentUser.role === "moderator") &&
+        R("button", {
+          className: "btn-ghost",
+          style: { fontSize: 12, padding: "6px 0", width: "100%", marginTop: 10 },
+          onClick: function () { NE.navigate("/ext/" + SLUG + "/compose"); }
+        }, "+ Write article")
+    );
+  }
+
+  // blog-categories — shown on blog extension pages
+  function BlogCategoriesWidget() {
+    var [categories, setCategories] = useState(null);
+    var R = window.React.createElement;
+
+    useEffect(function () {
+      apiGet("/categories").then(function (d) {
+        setCategories(d.categories || []);
+      }).catch(function () { setCategories([]); });
+    }, []);
+
+    if (!categories || categories.length === 0) return null;
+
+    return R("div", { className: "rw" },
+      R("div", { className: "rw-label" }, "Categories"),
+      categories.map(function (c) {
+        return R("div", {
+          key: c.id,
+          style: { display: "flex", alignItems: "center", justifyContent: "space-between", padding: "7px 0", borderBottom: "0.5px solid rgba(255,255,255,0.04)", cursor: "pointer" },
+          onClick: function () { NE.navigate("/ext/" + SLUG + "/category/" + c.slug); }
+        },
+          R("div", { style: { display: "flex", alignItems: "center", gap: 8 } },
+            R("span", { style: { width: 7, height: 7, borderRadius: "50%", background: c.color, display: "inline-block", flexShrink: 0 } }),
+            R("i", { className: "fa-solid " + c.icon, style: { fontSize: 11, color: c.color } }),
+            R("span", { style: { fontSize: 13, color: "rgba(255,255,255,0.55)" } }, c.name)
+          ),
+          c.article_count > 0 && R("span", {
+            style: { fontSize: 11, color: "rgba(255,255,255,0.28)", background: "rgba(255,255,255,0.05)", padding: "1px 8px", borderRadius: 20 }
+          }, c.article_count)
+        );
+      })
+    );
+  }
+
+  // blog-feed-highlight — shown on the feed, two portrait image cards
+  function BlogFeedHighlightWidget() {
+    var [articles, setArticles] = useState(null);
+    var R = window.React.createElement;
+
+    useEffect(function () {
+      apiGet("/articles?per_page=2").then(function (d) {
+        setArticles((d.articles || []).slice(0, 2));
+      }).catch(function () { setArticles([]); });
+    }, []);
+
+    if (!articles || articles.length === 0) return null;
+
+    return R("div", { className: "rw" },
+      R("div", { className: "rw-label" }, "From the blog"),
+      R("div", { style: { display: "flex", flexDirection: "column", gap: 8 } },
+        articles.map(function (a) {
+          var hasHero = !!a.hero_image_url;
+          return R("div", {
+            key: a.id,
+            onClick: function () { NE.navigate("/ext/" + SLUG + "/article/" + a.slug); },
+            style: {
+              position: "relative", height: 158, borderRadius: 10,
+              overflow: "hidden", cursor: "pointer",
+              background: hasHero ? "none" : "linear-gradient(135deg, #0d1a2e 0%, #1a1226 50%, #0d1420 100%)"
+            }
+          },
+            hasHero && R("img", {
+              src: a.hero_image_url,
+              style: { position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" },
+              alt: a.title
+            }),
+            R("div", { style: { position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.08) 100%)" } }),
+            R("div", { style: { position: "relative", zIndex: 2, padding: "12px 13px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" } },
+              a.category_name && R(CategoryBadge, { name: a.category_name, color: a.category_color, icon: a.category_icon }),
+              R("div", { style: { fontSize: 13, fontWeight: 500, color: "#fff", lineHeight: 1.38, marginTop: 6, marginBottom: 7 } }, a.title),
+              R("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
+                a.author_username && R(Av, {
+                  user: { username: a.author_username, avatar_url: a.author_avatar_url, avatar_color: a.author_avatar_color },
+                  size: 16
+                }),
+                a.author_username && R("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.55)" } }, a.author_username),
+                R("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.25)" } }, "\u00b7"),
+                R("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.55)" } }, a.reading_time_minutes + " min read"),
+                R("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.25)" } }, "\u00b7"),
+                R("span", { style: { fontSize: 11, color: "rgba(255,255,255,0.5)" } }, fmtArticleDate(a.published_at))
+              )
+            )
+          );
+        })
+      ),
+      R("div", {
+        style: { display: "flex", alignItems: "center", justifyContent: "center", gap: 5, marginTop: 10, fontSize: 12, color: "rgba(255,255,255,0.3)", cursor: "pointer", padding: "4px 0" },
+        onClick: function () { NE.navigate("/ext/" + SLUG); }
+      },
+        R("span", null, "See all articles"),
+        R("i", { className: "fa-solid fa-arrow-right", style: { fontSize: 10 } })
+      )
     );
   }
 
@@ -998,8 +1390,38 @@
     priority: 50
   });
 
-  NE.registerRoute(SLUG, "/",            BlogIndex,    { title: "Blog" });
-  NE.registerRoute(SLUG, "/compose",     BlogComposer, { title: "New article" });
-  NE.registerRoute(SLUG, "/compose/:id", BlogComposer, { title: "Edit article" });
+  NE.registerRoute(SLUG, "/",               BlogIndex,          { title: "Blog" });
+  NE.registerRoute(SLUG, "/article/:slug",  BlogArticle,        { title: "Article" });
+  NE.registerRoute(SLUG, "/category/:slug", BlogCategoryIndex,  { title: "Category" });
+  NE.registerRoute(SLUG, "/compose",        BlogComposer,       { title: "New article" });
+  NE.registerRoute(SLUG, "/compose/:id",    BlogComposer,       { title: "Edit article" });
+
+  NE.registerRightWidget({
+    slug:      SLUG,
+    id:        "blog-feed-highlight",
+    label:     "From the blog",
+    component: BlogFeedHighlightWidget,
+    priority:  30,
+    scope:     { corePages: ["feed"] }
+  });
+
+  NE.registerRightWidget({
+    slug:      SLUG,
+    id:        "blog-recent",
+    label:     "Recent articles",
+    component: BlogRecentWidget,
+    priority:  10,
+    scope:     "extension"
+  });
+
+  NE.registerRightWidget({
+    slug:      SLUG,
+    id:        "blog-categories",
+    label:     "Categories",
+    component: BlogCategoriesWidget,
+    priority:  20,
+    scope:     "extension"
+  });
 
 })();
+

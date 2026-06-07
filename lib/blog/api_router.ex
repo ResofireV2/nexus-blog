@@ -142,6 +142,12 @@ defmodule Blog.ApiRouter do
   # Query params: category (slug), page (default 1), include_drafts (admin only).
   get "/articles" do
     user           = conn.assigns[:current_user]
+
+    case Permissions.check("blog", "can_view_blog", user) do
+      :error ->
+        conn |> put_resp_content_type("application/json") |> send_resp(403, ~s({"error":"Access denied"}))
+      :ok ->
+
     params         = conn.query_params
     page           = parse_page(params["page"])
     per_page       = 20
@@ -198,12 +204,19 @@ defmodule Blog.ApiRouter do
     conn
     |> put_resp_content_type("application/json")
     |> send_resp(200, Jason.encode!(%{articles: articles, page: page}))
+
+    end  # :ok case
   end
 
   # GET /articles/:slug_or_id
   # Returns a single article. Drafts only visible to admins and the author.
   get "/articles/:slug_or_id" do
     user = conn.assigns[:current_user]
+
+    case Permissions.check("blog", "can_view_blog", user) do
+      :error ->
+        conn |> put_resp_content_type("application/json") |> send_resp(403, ~s({"error":"Access denied"}))
+      :ok ->
 
     article =
       Repo.one(
@@ -243,6 +256,8 @@ defmodule Blog.ApiRouter do
       true ->
         conn |> put_resp_content_type("application/json") |> send_resp(200, Jason.encode!(%{article: article}))
     end
+
+    end  # :ok case
   end
 
   # POST /articles — requires can_write_articles
@@ -412,6 +427,32 @@ defmodule Blog.ApiRouter do
           Repo.delete_all(from a in "blog_articles", where: a.id == ^article_id)
           conn |> put_resp_content_type("application/json") |> send_resp(200, ~s({"ok":true}))
       end
+    end
+  end
+
+  # POST /images
+  # Stores a record of an inline image upload so it can be cleaned up
+  # when the article is deleted. The actual upload is performed by the
+  # JS bundle via NexusExtensions.uploadFile before calling this endpoint.
+  # Body: {"article_id": 123, "url": "/uploads/extensions/blog/..."}
+  post "/images" do
+    user = conn.assigns[:current_user]
+
+    case Permissions.check("blog", "can_write_articles", user) do
+      :error ->
+        conn |> put_resp_content_type("application/json") |> send_resp(403, ~s({"error":"Access denied"}))
+
+      :ok ->
+        article_id = parse_id(conn.body_params["article_id"])
+        url        = conn.body_params["url"]
+
+        if is_nil(article_id) || is_nil(url) || url == "" do
+          conn |> put_resp_content_type("application/json") |> send_resp(400, ~s({"error":"article_id and url are required"}))
+        else
+          now = DateTime.utc_now() |> DateTime.truncate(:second)
+          Repo.insert_all("blog_images", [%{article_id: article_id, url: url, inserted_at: now}])
+          conn |> put_resp_content_type("application/json") |> send_resp(201, ~s({"ok":true}))
+        end
     end
   end
 
