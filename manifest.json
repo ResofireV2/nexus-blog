@@ -1,0 +1,61 @@
+{
+  "$schema": "https://YOUR-NEXUS-HOST/manifest_schema.json",
+  "manifest_version": 2,
+  "name": "Blog",
+  "slug": "blog",
+  "version": "0.1.0",
+  "description": "A full-featured community blog with categories, hero images, rich articles, and digest integration.",
+  "author": "ResofireV2",
+  "homepage": "https://github.com/ResofireV2/nexus-blog",
+  "repository": "https://github.com/ResofireV2/nexus-blog",
+  "license": "MIT",
+  "tags": ["blog", "content", "publishing"],
+  "compatible_with": "^0.3.0",
+  "module": "Blog",
+  "js_bundle": "blog.js",
+  "logo_url": "/ext/blog/assets/logo.webp",
+  "banner_url": "/ext/blog/assets/banner.webp",
+  "settings_schema": {
+    "blog_title": {
+      "type": "string",
+      "label": "Blog title",
+      "default": "Blog",
+      "description": "Displayed as the page heading and explore sidebar label."
+    }
+  },
+  "settings_tabs": [],
+  "hooks": [],
+  "routes": [],
+  "admin_panel": {
+    "label": "Blog",
+    "icon": "fa-newspaper"
+  },
+  "explore": {
+    "label": "Blog",
+    "icon": "fa-newspaper",
+    "path": "/"
+  },
+  "right_widgets": [],
+  "digest_sections": [],
+  "permissions": [
+    {
+      "key": "can_view_blog",
+      "label": "Can view the blog",
+      "default": "everyone"
+    },
+    {
+      "key": "can_write_articles",
+      "label": "Can write blog articles",
+      "default": "admin"
+    },
+    {
+      "key": "can_publish_articles",
+      "label": "Can publish and unpublish blog articles",
+      "default": "admin"
+    }
+  ],
+  "slots": [],
+  "toolbar_buttons": [],
+  "side_data": [],
+  "capabilities": []
+}
