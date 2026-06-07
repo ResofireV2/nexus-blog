@@ -411,15 +411,21 @@
                 R("td", null,
                   R("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
                     R("button", {
-                      className: "btn-sm",
+                      className: "btn-ghost",
+                      style: { fontSize: 12, padding: "5px 14px" },
                       onClick: function () {
                         setEditing(cat);
                         setShowForm(true);
                       }
                     }, "Edit"),
                     R("button", {
-                      className: "btn-danger",
+                      className: "btn-ghost",
                       disabled: deleting === cat.id,
+                      style: {
+                        fontSize: 12, padding: "5px 14px",
+                        borderColor: "rgba(248,113,113,0.3)",
+                        color: deleting === cat.id ? "var(--t4)" : "var(--red)"
+                      },
                       onClick: function () { handleDelete(cat); }
                     }, deleting === cat.id ? "Deleting…" : "Delete")
                   )
