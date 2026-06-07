@@ -580,6 +580,7 @@
     var articleId   = id ? parseInt(id, 10) : null;
     var R           = window.React.createElement;
     var fileInputRef = useRef();
+    var inlineImgInputRef = useRef();
 
     var [title,       setTitle]       = useState("");
     var [body,        setBody]        = useState("");
@@ -822,8 +823,6 @@
       { label: "fa-solid fa-list-ul", tip: "Bullet list",   fa: true, prefix: "- " },
       { label: "fa-solid fa-list-ol", tip: "Numbered list", fa: true, prefix: "1. " }
     ];
-
-    var inlineImgInputRef = useRef();
 
     var toolbar = R("div", { className: "comp-toolbar" },
       TB.map(function (b, i) {

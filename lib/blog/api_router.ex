@@ -218,12 +218,26 @@ defmodule Blog.ApiRouter do
         conn |> put_resp_content_type("application/json") |> send_resp(403, ~s({"error":"Access denied"}))
       :ok ->
 
+    # Accept both slug (string) and integer id so the composer can fetch
+    # by article id after create/edit navigates to /compose/:id.
+    numeric_id = case Integer.parse(slug_or_id) do
+      {id, ""} when id > 0 -> id
+      _ -> nil
+    end
+
+    id_filter =
+      if numeric_id do
+        dynamic([a], a.id == ^numeric_id or a.slug == ^slug_or_id)
+      else
+        dynamic([a], a.slug == ^slug_or_id)
+      end
+
     article =
       Repo.one(
         from a in "blog_articles",
           left_join: c in "blog_categories", on: c.id == a.category_id,
           left_join: u in "users", on: u.id == a.author_id,
-          where: a.slug == ^slug_or_id,
+          where: ^id_filter,
           select: %{
             id:                    a.id,
             title:                 a.title,
