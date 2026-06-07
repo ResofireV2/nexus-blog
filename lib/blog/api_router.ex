@@ -137,54 +137,63 @@ defmodule Blog.ApiRouter do
   # ---------------------------------------------------------------------------
 
   # GET /articles
-  # Returns published articles only (for public view).
-  # Query params: category_slug, page (default 1), per_page (default 20).
+  # Returns published articles (for public view), or all articles when
+  # include_drafts=true is sent by an admin.
+  # Query params: category (slug), page (default 1), include_drafts (admin only).
   get "/articles" do
-    user          = conn.assigns[:current_user]
-    params        = conn.query_params
-    page          = parse_page(params["page"])
-    per_page      = 20
-    offset        = (page - 1) * per_page
-    cat_slug      = params["category"]
+    user           = conn.assigns[:current_user]
+    params         = conn.query_params
+    page           = parse_page(params["page"])
+    per_page       = 20
+    offset         = (page - 1) * per_page
+    cat_slug       = params["category"]
     include_drafts = params["include_drafts"] == "true" && user && user.role == "admin"
+    filter_cat     = is_binary(cat_slug) && cat_slug != ""
 
-    base =
-      from a in "blog_articles",
-        left_join: c in "blog_categories", on: c.id == a.category_id,
-        left_join: u in "users", on: u.id == a.author_id,
-        order_by: [desc: a.published_at, desc: a.inserted_at],
-        limit: ^per_page,
-        offset: ^offset,
-        select: %{
-          id:                    a.id,
-          title:                 a.title,
-          slug:                  a.slug,
-          status:                a.status,
-          hero_image_url:        a.hero_image_url,
-          reading_time_minutes:  a.reading_time_minutes,
-          published_at:          a.published_at,
-          inserted_at:           a.inserted_at,
-          category_id:           a.category_id,
-          category_name:         c.name,
-          category_slug:         c.slug,
-          category_color:        c.color,
-          category_icon:         c.icon,
-          author_id:             a.author_id,
-          author_username:       u.username,
-          author_avatar_url:     u.avatar_url,
-          author_avatar_color:   u.avatar_color
-        }
-
-    base = if include_drafts, do: base, else: from [a, ..] in base, where: a.status == "published"
-
-    base =
-      if cat_slug && cat_slug != "" do
-        from [a, c, ..] in base, where: c.slug == ^cat_slug
+    status_filter =
+      if include_drafts do
+        dynamic(^true)
       else
-        base
+        dynamic([a], a.status == "published")
       end
 
-    articles = Repo.all(base)
+    cat_filter =
+      if filter_cat do
+        dynamic([_a, c], c.slug == ^cat_slug)
+      else
+        dynamic(^true)
+      end
+
+    articles =
+      Repo.all(
+        from a in "blog_articles",
+          left_join: c in "blog_categories", on: c.id == a.category_id,
+          left_join: u in "users", on: u.id == a.author_id,
+          where: ^status_filter,
+          where: ^cat_filter,
+          order_by: [desc: a.published_at, desc: a.inserted_at],
+          limit: ^per_page,
+          offset: ^offset,
+          select: %{
+            id:                   a.id,
+            title:                a.title,
+            slug:                 a.slug,
+            status:               a.status,
+            hero_image_url:       a.hero_image_url,
+            reading_time_minutes: a.reading_time_minutes,
+            published_at:         a.published_at,
+            inserted_at:          a.inserted_at,
+            category_id:          a.category_id,
+            category_name:        c.name,
+            category_slug:        c.slug,
+            category_color:       c.color,
+            category_icon:        c.icon,
+            author_id:            a.author_id,
+            author_username:      u.username,
+            author_avatar_url:    u.avatar_url,
+            author_avatar_color:  u.avatar_color
+          }
+      )
 
     conn
     |> put_resp_content_type("application/json")
