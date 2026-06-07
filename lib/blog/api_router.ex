@@ -430,6 +430,19 @@ defmodule Blog.ApiRouter do
     end
   end
 
+  # GET /settings
+  # Returns public-facing extension settings needed by the JS bundle.
+  # Currently exposes blog_title. Public — no auth required.
+  get "/settings" do
+    ext      = Nexus.Extensions.get_extension_by_slug("blog")
+    settings = if ext, do: ext.settings || %{}, else: %{}
+    title    = settings["blog_title"] || "Blog"
+
+    conn
+    |> put_resp_content_type("application/json")
+    |> send_resp(200, Jason.encode!(%{blog_title: title}))
+  end
+
   # POST /images
   # Stores a record of an inline image upload so it can be cleaned up
   # when the article is deleted. The actual upload is performed by the

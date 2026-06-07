@@ -1031,9 +1031,11 @@
     var [articles,   setArticles]   = useState(null);
     var [categories, setCategories] = useState([]);
     var [activeCat,  setActiveCat]  = useState("");
+    var [blogTitle,  setBlogTitle]  = useState("Blog");
     var R = window.React.createElement;
 
     useEffect(function () {
+      apiGet("/settings").then(function (d) { if (d.blog_title) setBlogTitle(d.blog_title); });
       apiGet("/categories").then(function (d) { setCategories(d.categories || []); });
     }, []);
 
@@ -1049,7 +1051,7 @@
 
     return R("div", { style: { padding: "24px 0", maxWidth: 860, margin: "0 auto" } },
       R("div", { style: { display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 4 } },
-        R("h1", { style: { fontSize: "var(--fs-title)", fontWeight: 600, color: "var(--t1)", letterSpacing: "-0.3px" } }, "Blog"),
+        R("h1", { style: { fontSize: "var(--fs-title)", fontWeight: 600, color: "var(--t1)", letterSpacing: "-0.3px" } }, blogTitle),
         currentUser && (currentUser.role === "admin" || currentUser.role === "moderator") &&
           R("button", {
             className: "btn-primary",

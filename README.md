@@ -4,30 +4,39 @@ A full-featured community blog for Nexus. Supports categories with color and ico
 
 ## Installation
 
-Install via Admin → Extensions → Install from URL, or from the command line:
+Install via **Admin → Extensions → Install from URL**, or from the command line:
 
 ```bash
 mix nexus.extension.install ./blog
 ```
 
+## Features
+
+- **Full-bleed hero images** — article cards and the reading view use the hero image as a full background with a gradient overlay
+- **Categories** — admin-defined categories with a custom color (full color picker + presets) and Font Awesome icon
+- **Rich composer** — hero image upload, title, category selector, full Markdown toolbar with inline image uploads, draft/publish workflow
+- **Blog index** — featured hero card for the latest article, 2-column grid for the rest, category filter pills
+- **Article reading view** — full hero, title, author, date, reading time, rendered Markdown body
+- **Right sidebar widgets** — "From the blog" on the feed (2 latest articles), "Recent articles" and "Categories" on blog pages
+- **Digest integration** — "Latest from the blog" section in digest emails
+
 ## Usage
 
-Once installed, **Blog** appears in the left sidebar Explore section. Admins manage the blog via **Admin → Blog**.
+Once installed, **Blog** appears in the left sidebar Explore section. Click it to browse published articles.
 
-### Categories
+Admins manage the blog via **Admin → Blog**:
 
-Create and manage categories in **Admin → Blog → Categories**. Each category has:
-- A name and URL slug
-- A hex color (full color picker + preset swatches)
-- A Font Awesome icon (text input + quick-pick grid)
+- **Articles tab** — view all articles (published and draft), publish/unpublish, edit, delete
+- **Categories tab** — create and manage categories with color and icon
 
-### Articles
+### Writing articles
 
-Write articles via the **Blog** explore entry. The composer supports:
-- A full-width hero image upload
-- H1 / H2 / H3 headings, bold, italic, links, code blocks, blockquotes, lists
-- Inline image uploads
-- Draft / Publish / Submit for review workflow
+Click **+ Write article** from the blog index or Admin → Blog → Articles. The composer supports:
+
+- A full-width hero image upload (click the zone or the Upload button)
+- H1 / H2 / H3 headings, bold, italic, strikethrough, links, code blocks, blockquotes, dividers, lists
+- Inline image uploads via the toolbar image button
+- Save as draft or publish immediately
 
 ### Permissions
 
@@ -43,4 +52,4 @@ Configure in **Admin → Permissions → Blog**.
 
 | Setting | Default | Description |
 |---|---|---|
-| Blog title | Blog | Page heading and explore sidebar label |
+| Blog title | Blog | Page heading displayed on the blog index |
