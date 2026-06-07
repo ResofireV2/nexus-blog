@@ -25,7 +25,10 @@
   },
   "settings_tabs": [],
   "hooks": [],
-  "routes": [],
+  "routes": [
+    {"path": "/compose",     "title": "New article"},
+    {"path": "/compose/:id", "title": "Edit article"}
+  ],
   "admin_panel": {
     "label": "Blog",
     "icon": "fa-newspaper"

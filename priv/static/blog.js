@@ -853,9 +853,9 @@
       })
     );
 
-    return R("div", { style: { display: "flex", flexDirection: "column", minHeight: "100vh", margin: "0 -28px" } },
+    return R("div", { style: { display: "flex", flexDirection: "column", margin: "0 -28px" } },
       heroZone,
-      R("div", { className: "composer-inner" },
+      R("div", { style: { width: "100%", padding: "32px 48px 0", boxSizing: "border-box", display: "flex", flexDirection: "column" } },
         R("input", {
           className: "comp-title-input",
           placeholder: "Article title\u2026",
@@ -884,7 +884,12 @@
             style: { color: "rgba(52,211,153,0.9)", borderColor: "rgba(52,211,153,0.25)", background: "rgba(52,211,153,0.08)" }
           }, "Published")
         ),
-        R("div", { className: "comp-body-area" },
+        R("div", {
+          style: {
+            background: "var(--s1)", borderRadius: "0 0 12px 12px",
+            display: "flex", flexDirection: "column"
+          }
+        },
           toolbar,
           R("textarea", {
             ref: taRef,
@@ -892,7 +897,7 @@
             placeholder: "Write your article\u2026",
             value: body,
             onChange: function (e) { setBody(e.target.value); },
-            style: { padding: "16px", minHeight: 400 }
+            style: { padding: "16px", minHeight: 560, resize: "vertical" }
           })
         ),
         R("div", { className: "comp-footer" },
