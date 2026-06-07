@@ -962,6 +962,18 @@
 
   var { Av, Md } = window.NexusComponents;
 
+  // Mobile detection — mirrors the window.innerWidth <= 767 check used
+  // throughout Nexus (RichTextArea, etc.). Updates on resize.
+  function useMobile() {
+    var [mobile, setMobile] = useState(function () { return window.innerWidth <= 767; });
+    useEffect(function () {
+      function handle() { setMobile(window.innerWidth <= 767); }
+      window.addEventListener("resize", handle);
+      return function () { window.removeEventListener("resize", handle); };
+    }, []);
+    return mobile;
+  }
+
   function fmtArticleDate(iso) {
     if (!iso) return "";
     var d = new Date(iso);
@@ -1031,6 +1043,7 @@
     var [categories, setCategories] = useState([]);
     var [activeCat,  setActiveCat]  = useState("");
     var [blogTitle,  setBlogTitle]  = useState("Blog");
+    var mobile = useMobile();
     var R = window.React.createElement;
 
     useEffect(function () {
@@ -1092,7 +1105,7 @@
       }),
 
       // 2-column grid
-      rest.length > 0 && R("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+      rest.length > 0 && R("div", { style: { display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 12 } },
         rest.map(function (a) {
           return R(ArticleCard, {
             key: a.id,
@@ -1110,6 +1123,7 @@
   function BlogCategoryIndex({ slug: catSlug, currentUser }) {
     var [articles,   setArticles]   = useState(null);
     var [category,   setCategory]   = useState(null);
+    var mobile = useMobile();
     var R = window.React.createElement;
 
     useEffect(function () {
@@ -1142,7 +1156,7 @@
       articles === null && R("div", { style: { color: "var(--t4)", fontSize: 13, padding: "20px 0" } }, "Loading\u2026"),
       articles && articles.length === 0 && R("div", { style: { color: "var(--t4)", fontSize: 13, padding: "20px 0" } }, "No articles in this category yet."),
 
-      articles && articles.length > 0 && R("div", { style: { display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 } },
+      articles && articles.length > 0 && R("div", { style: { display: "grid", gridTemplateColumns: mobile ? "1fr" : "1fr 1fr", gap: 12 } },
         articles.map(function (a) {
           return R(ArticleCard, {
             key: a.id,
