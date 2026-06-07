@@ -1000,7 +1000,7 @@
           background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.45) 50%, rgba(0,0,0,0.08) 100%)"
         }
       }),
-      R("div", { style: { position: "relative", zIndex: 2, padding: featured ? "22px" : "16px 18px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" } },
+      R("div", { style: { position: "relative", zIndex: 2, padding: featured ? "22px" : "16px 18px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start" } },
         article.category_name && R(CategoryBadge, { name: article.category_name, color: article.category_color, icon: article.category_icon }),
         R("div", {
           style: {
@@ -1348,7 +1348,7 @@
               alt: a.title
             }),
             R("div", { style: { position: "absolute", inset: 0, background: "linear-gradient(to top, rgba(0,0,0,0.92) 0%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0.08) 100%)" } }),
-            R("div", { style: { position: "relative", zIndex: 2, padding: "12px 13px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end" } },
+            R("div", { style: { position: "relative", zIndex: 2, padding: "12px 13px", height: "100%", display: "flex", flexDirection: "column", justifyContent: "flex-end", alignItems: "flex-start" } },
               a.category_name && R(CategoryBadge, { name: a.category_name, color: a.category_color, icon: a.category_icon }),
               R("div", { style: { fontSize: 13, fontWeight: 500, color: "#fff", lineHeight: 1.38, marginTop: 6, marginBottom: 7 } }, a.title),
               R("div", { style: { display: "flex", alignItems: "center", gap: 6 } },
