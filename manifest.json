@@ -26,6 +26,7 @@
   "settings_tabs": [],
   "hooks": [],
   "routes": [
+    {"path": "/",            "title": "Blog"},
     {"path": "/compose",     "title": "New article"},
     {"path": "/compose/:id", "title": "Edit article"}
   ],

@@ -959,6 +959,29 @@
     );
   }
 
+  // ── Blog index — stub for Stage 2, full implementation in Stage 3 ──────────
+
+  function BlogIndex({ currentUser, navigate }) {
+    var R = window.React.createElement;
+    return R("div", {
+      style: { padding: "24px 0", maxWidth: 860, margin: "0 auto" }
+    },
+      R("h1", {
+        style: {
+          fontSize: "var(--fs-title)", fontWeight: 600,
+          color: "var(--t1)", letterSpacing: "-0.3px", marginBottom: 8
+        }
+      }, "Blog"),
+      R("p", { style: { fontSize: 13, color: "var(--t4)", marginBottom: 32 } },
+        "Articles coming soon."
+      ),
+      currentUser && currentUser.role === "admin" && R("button", {
+        className: "btn-primary",
+        onClick: function () { NE.navigate("/ext/" + SLUG + "/compose"); }
+      }, "+ New article")
+    );
+  }
+
   // ── Register surfaces ──────────────────────────────────────────────────────
 
   NE.registerAdminPanel(SLUG, {
@@ -975,6 +998,7 @@
     priority: 50
   });
 
+  NE.registerRoute(SLUG, "/",            BlogIndex,    { title: "Blog" });
   NE.registerRoute(SLUG, "/compose",     BlogComposer, { title: "New article" });
   NE.registerRoute(SLUG, "/compose/:id", BlogComposer, { title: "Edit article" });
 
